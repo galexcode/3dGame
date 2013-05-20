@@ -1,0 +1,89 @@
+<html>
+	<head>
+		<title>3d Game</title>
+		<style>canvas { width: 95%; height: 90% }</style>
+	</head>
+	<body>
+		<script src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>
+		<script src="game_websocket.js"></script>
+		<script src="player.js"></script>
+		<script src="scene_objects.js"></script>
+		<script>
+			var scene, camera, renderer, player, websocket, remotePlayers, playerName;
+			var clock = new THREE.Clock();
+			function init() {
+				playerName = "player" + Math.round(Math.random() * 100);
+				remotePlayers = [];
+				renderer = new THREE.WebGLRenderer();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+
+				scene = new THREE.Scene();
+				
+				camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+				camera.position.y = 2;
+
+				scene.add(new Sky());
+				scene.add(new Floor());
+				scene.add(new Tree(2,-5));
+				scene.add(new Tree(-7, -10));
+				player = new Player();
+				scene.add(player.mesh());
+				connect();
+			}
+			
+			function animate() {
+			    requestAnimationFrame(animate);
+				update(clock.getDelta());
+				render();
+			}
+
+			function render() {
+				renderer.render(scene, camera);
+			}
+			
+			function update(dt) {
+				player.updatePosition(dt);
+				camera.position.z = player.position().z + 4;
+				camera.position.x = player.position().x;
+				sendPlayerInfo();
+			}
+
+			function connect() {
+				websocket = new GameWebSocket(player, playerName, sendPlayerInfo, updateRemotePlayers);
+			}
+
+			function sendPlayerInfo() {
+				var playerInfo = {'type': 'update', 'name': playerName, 'position': player.position().toArray()};
+				websocket.sendMessage(JSON.stringify(playerInfo));
+			}
+
+			function updateRemotePlayers(resp) {
+				var result = JSON.parse(resp.data);
+				console.log(result.name == playerName);
+				if(result.name != playerName && !playerAlreadyExist(result.name)) {
+					var newPlayer = new RemotePlayer();
+					newPlayer.setPosition(result.position);
+					remotePlayers.push({'name': result.name, 'player': newPlayer});
+					scene.add(newPlayer);
+				} else {
+					for(var i = 0; i < remotePlayers.length; i++) {
+						if(remotePlayers[i]['name'] == result.name){
+							remotePlayers[i]['player'].position.setPosition(result.position)
+						}
+					}
+				}
+			}
+
+			function playerAlreadyExist(name) {
+				for(var i = 0; i < remotePlayers.length; i++) {
+					if(remotePlayers[i]['name'] == name) return true;
+				}
+				return false;
+			} 
+
+			init();
+			animate();
+		</script>
+	</body>
+</html>
