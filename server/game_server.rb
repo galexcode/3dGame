@@ -19,10 +19,10 @@ module GameServer
 			client.onmessage do |msg|
 				player_info = JSON.parse(msg)
 				players << {:client => client, :name => player_info['name'], :position => player_info['position']} and debug_message "New player: #{player_info['name']}" if player_info['type'] == 'connect'
-				players.each { |p| p[:position] = player_info['position'] if p[:name] == player_info['name'] } if player_info['type'] = 'update'
+				players.each { |player| player[:position] = player_info['position'] if player[:name] == player_info['name'] } if player_info['type'] = 'update'
 				debug_message players.count
 				#TODO: avisar cliente das novas posicoes
-				players.each { |p| player.each{ |p1| p[:client].send({:name => p1[:name], :position => p1[:position]}.to_json) }}
+				players.each { |player| player[:client].send players.to_json }
 			end
 
 			client.onclose do

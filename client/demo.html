@@ -7,6 +7,7 @@
 		<script src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>
 		<script src="game_websocket.js"></script>
 		<script src="player.js"></script>
+		<script src="remote_player.js"></script>
 		<script src="scene_objects.js"></script>
 		<script>
 			var scene, camera, renderer, player, websocket, remotePlayers, playerName;
@@ -60,26 +61,35 @@
 
 			function updateRemotePlayers(resp) {
 				var result = JSON.parse(resp.data);
-				console.log(result.name == playerName);
-				if(result.name != playerName && !playerAlreadyExist(result.name)) {
-					var newPlayer = new RemotePlayer();
-					newPlayer.setPosition(result.position);
-					remotePlayers.push({'name': result.name, 'player': newPlayer});
-					scene.add(newPlayer);
-				} else {
-					for(var i = 0; i < remotePlayers.length; i++) {
-						if(remotePlayers[i]['name'] == result.name){
-							remotePlayers[i]['player'].position.setPosition(result.position)
-						}
+				for(var i = 0; i < result.length; i++) {
+					if(result[i].name != playerName && !playerAlreadyExist(result[i].name)) {
+						createRemotePlayer(result[i].name, result[i].position)
+					} else {
+						var player = findPlayer(result[i].name);
+						if(player) player.setPosition(result[i].position);
 					}
 				}
 			}
 
+			function createRemotePlayer(name, position) {
+				var newPlayer = new RemotePlayer();
+				newPlayer.setPosition(position);
+				remotePlayers.push({'name': name, 'player': newPlayer});
+				scene.add(newPlayer.mesh());
+				console.log('player ' + name + ' joined');
+			}
+
 			function playerAlreadyExist(name) {
+				return findPlayer(name) != null;
+			}
+
+			function findPlayer(name) {
 				for(var i = 0; i < remotePlayers.length; i++) {
-					if(remotePlayers[i]['name'] == name) return true;
+					if(remotePlayers[i].name == name) {
+						return remotePlayers[i].player;
+					}
 				}
-				return false;
+				return null;
 			} 
 
 			init();

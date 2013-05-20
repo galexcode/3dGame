@@ -3,7 +3,7 @@ var GameWebSocket = function(player, playerName, onOpenCallback, onMessageCallba
 	var connected = false;
 	var socket = new WebSocket('ws://localhost:30000');
 	socket.onopen = function () {
-		var playerInfo = {'type': 'connect', 'name': playerName, 'position': player.position};
+		var playerInfo = {'type': 'connect', 'name': playerName, 'position': player.position().toArray()};
 		connected = true;
 		socket.send(JSON.stringify(playerInfo));
 	}
